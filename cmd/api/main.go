@@ -20,7 +20,10 @@ type config struct {
 	port int
 	env  string
 	db   struct {
-		dsn string
+		dsn          string
+		maxOpenConns int
+		maxIdleConns int
+		maxIdleTime  string
 	}
 }
 
@@ -42,6 +45,10 @@ func main() {
 	flag.IntVar(&conf.port, "port", 4000, "API server port")
 	flag.StringVar(&conf.env, "env", "development", "Eniroment (developmet|staging|production)")
 	flag.StringVar(&conf.db.dsn, "db-dsn", dbURL, "PostgreSQL DSN")
+
+	flag.IntVar(&conf.db.maxOpenConns, "db-max-open-conns", 25, "PostgreSQL DSN")
+	flag.IntVar(&conf.db.maxIdleConns, "db-max-idle-conns", 25, "PostgreSQL DSN")
+	flag.StringVar(&conf.db.maxIdleTime, "db-max-idle-time", "15m", "PostgreSQL DSN")
 
 	flag.Parse()
 
@@ -76,6 +83,17 @@ func main() {
 
 func openDB(conf config) (*sql.DB, error) {
 	db, err := sql.Open("postgres", conf.db.dsn)
+
+	db.SetMaxOpenConns(conf.db.maxOpenConns)
+	db.SetMaxIdleConns(conf.db.maxIdleConns)
+
+	duration, err := time.ParseDuration(conf.db.maxIdleTime)
+	if err != nil {
+		return nil, err
+	}
+
+	db.SetConnMaxIdleTime(duration)
+
 	if err != nil {
 		return nil, err
 	}
