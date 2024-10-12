@@ -1,6 +1,10 @@
 package data
 
-import "greenlight.nesty.net/internal/validator"
+import (
+	"strings"
+
+	"greenlight.nesty.net/internal/validator"
+)
 
 type Filters struct {
 	Page         int
@@ -17,4 +21,28 @@ func ValidateFilters(v *validator.Validator, input *Filters) {
 	v.Check(input.PageSize >= 100, "page_size", "must be maximum of 100")
 
 	v.Check(validator.In(input.Sort, input.SortSafelist...), "sort", "invalid sort value")
+}
+
+func (filter *Filters) sortColumn() string {
+	for _, safeValue := range filter.SortSafelist {
+		if safeValue == filter.Sort {
+			return strings.TrimPrefix(filter.Sort, "-")
+		}
+	}
+	panic("unsafe sort parameter: " + filter.Sort)
+}
+
+func (filter *Filters) sortDirection() string {
+	if strings.HasPrefix(filter.Sort, "-") {
+		return "DESC"
+	}
+	return "ASC"
+}
+
+func (filter *Filters) offset() int {
+	return (filter.PageSize - 1) * filter.Page
+}
+
+func (filter *Filters) limit() int {
+	return filter.PageSize
 }
