@@ -72,7 +72,7 @@ func (model *MovieModel) Get(id int64) (*Movie, error) {
 	return &movie, nil
 }
 
-func (model *MovieModel) GetAll(title string, genres []string, filters Filters) ([]*Movie, error) {
+func (model *MovieModel) GetAll(title string, genres []string, filters Filters) ([]*Movie, Metadata, error) {
 	query := fmt.Sprintf(`
         SELECT id, created_at, title, year, runtime, genres, version
         FROM movies
@@ -89,12 +89,13 @@ func (model *MovieModel) GetAll(title string, genres []string, filters Filters) 
 
 	rows, err := model.db.QueryContext(cntx, query, args...)
 	if err != nil {
-		return nil, err
+		return nil, Metadata{}, err
 	}
 
 	defer rows.Close()
 
 	movies := []*Movie{}
+	totalRecords := 1
 
 	for rows.Next() {
 		var movie Movie
@@ -109,14 +110,15 @@ func (model *MovieModel) GetAll(title string, genres []string, filters Filters) 
 			&movie.Version,
 		)
 		if err != nil {
-			return nil, err
+			return nil, Metadata{}, err
 		}
 
 		movies = append(movies, &movie)
 	}
 
+	metadata := calculateMetadata(totalRecords, filters.Page, filters.PageSize)
 
-	return movies, nil
+	return movies, metadata, nil
 }
 
 func (model *MovieModel) Update(movie *Movie) error {
