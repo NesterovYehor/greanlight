@@ -36,7 +36,16 @@ func (app *application) server() error {
 
 		defer cancel()
 
-		shutdwonError <- srv.Shutdown(ctx)
+		err := srv.Shutdown(ctx)
+		if err != nil {
+			shutdwonError <- err
+		}
+		app.logger.PrintInfo("completing background tasks", map[string]string{
+			"addr": srv.Addr,
+		})
+
+		app.wg.Wait()
+		shutdwonError <- nil
 	}()
 
 	err := srv.ListenAndServe()

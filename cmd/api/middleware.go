@@ -44,33 +44,34 @@ func (app *application) rateLimit(next http.Handler) http.Handler {
 					delete(clients, ip)
 				}
 			}
+			mu.Unlock()
 		}
 	}()
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-        if app.config.limiter.enable{
-            ip, _, err := net.SplitHostPort(r.RemoteAddr)
-            if err != nil {
-                app.serverErrorResponse(w, r, err)
-                return
-            }
+		if app.config.limiter.enable {
+			ip, _, err := net.SplitHostPort(r.RemoteAddr)
+			if err != nil {
+				app.serverErrorResponse(w, r, err)
+				return
+			}
 
-            mu.Unlock()
-            if _, found := clients[ip]; !found {
-                clients[ip] = &client{
-                    limiter: *rate.NewLimiter(rate.Limit(app.config.limiter.rps), app.config.limiter.burst),
-                }
-            }
+			mu.Lock()
+			if _, found := clients[ip]; !found {
+				clients[ip] = &client{
+					limiter: *rate.NewLimiter(rate.Limit(app.config.limiter.rps), app.config.limiter.burst),
+				}
+			}
 
-            clients[ip].lastSeen = time.Now()
+			clients[ip].lastSeen = time.Now()
 
-            if !clients[ip].limiter.Allow() {
-                mu.Unlock()
-                app.rateLimitExceededResponse(w, r)
-                return
-            }
-            mu.Unlock()
-            next.ServeHTTP(w, r)
-        }
+			if !clients[ip].limiter.Allow() {
+				mu.Unlock()
+				app.rateLimitExceededResponse(w, r)
+				return
+			}
+			mu.Unlock()
+			next.ServeHTTP(w, r)
+		}
 	})
 }

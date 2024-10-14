@@ -3,80 +3,47 @@ package main
 import (
 	"context"
 	"database/sql"
-	"flag"
-	"log"
 	"os"
+	"sync"
 	"time"
 
-	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
 	"greenlight.nesty.net/internal/data"
 	"greenlight.nesty.net/internal/jsonlog"
+	"greenlight.nesty.net/internal/mailer"
 )
 
 const version = "1.0.0"
-
-type config struct {
-	port int
-	env  string
-	db   struct {
-		dsn          string
-		maxOpenConns int
-		maxIdleConns int
-		maxIdleTime  string
-	}
-	limiter struct {
-		rps    float64
-		burst  int
-		enable bool
-	}
-}
 
 type application struct {
 	config config
 	logger *jsonlog.Logger
 	models data.Models
+	mailer mailer.Mailer
+	wg     sync.WaitGroup
 }
 
 func main() {
-	var conf config
-
-	err := godotenv.Load()
-	if err != nil {
-		log.Fatal("Error loading .env file")
-	}
-
-	dbURL := os.Getenv("DATABASE_URL")
-
-	flag.IntVar(&conf.port, "port", 4000, "API server port")
-	flag.StringVar(&conf.env, "env", "development", "Eniroment (developmet|staging|production)")
-	flag.StringVar(&conf.db.dsn, "db-dsn", dbURL, "PostgreSQL DSN")
-
-	flag.IntVar(&conf.db.maxOpenConns, "db-max-open-conns", 25, "PostgreSQL DSN")
-	flag.IntVar(&conf.db.maxIdleConns, "db-max-idle-conns", 25, "PostgreSQL DSN")
-	flag.StringVar(&conf.db.maxIdleTime, "db-max-idle-time", "15m", "PostgreSQL DSN")
-
-	flag.Float64Var(&conf.limiter.rps, "limiter-rps", 2, "Rate limiter maximum requests per second")
-	flag.IntVar(&conf.limiter.burst, "limiter-burst", 4, "Rate limiter maximum burst")
-	flag.BoolVar(&conf.limiter.enable, "limiter-enable", true, "Enable rate limiter")
-
-	flag.Parse()
+	cnf := config{}
+	cnf.New()
 
 	logger := jsonlog.New(os.Stdout, jsonlog.LevelInfo)
-	db, err := openDB(conf)
+	db, err := openDB(cnf)
 	if err != nil {
 		logger.PrintFatal(err, nil)
 	}
 
 	defer db.Close()
 
-	logger.PrintInfo("database connection pool established", nil)
-
 	app := &application{
-		config: conf,
+		config: cnf,
 		logger: logger,
 		models: data.NewModel(db),
+		mailer: mailer.New(cnf.smtp.port, cnf.smtp.host, cnf.smtp.username, cnf.smtp.password, cnf.smtp.sender), // Corrected line
+        wg: sync.WaitGroup{},
 	}
+
+	logger.PrintInfo("database connection pool established", nil)
 
 	err = app.server()
 	if err != nil {
@@ -84,13 +51,13 @@ func main() {
 	}
 }
 
-func openDB(conf config) (*sql.DB, error) {
-	db, err := sql.Open("postgres", conf.db.dsn)
+func openDB(cnf config) (*sql.DB, error) {
+	db, err := sql.Open("postgres", cnf.db.dsn)
 
-	db.SetMaxOpenConns(conf.db.maxOpenConns)
-	db.SetMaxIdleConns(conf.db.maxIdleConns)
+	db.SetMaxOpenConns(cnf.db.maxOpenConns)
+	db.SetMaxIdleConns(cnf.db.maxIdleConns)
 
-	duration, err := time.ParseDuration(conf.db.maxIdleTime)
+	duration, err := time.ParseDuration(cnf.db.maxIdleTime)
 	if err != nil {
 		return nil, err
 	}
