@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"database/sql"
 	"errors"
+	"fmt"
 	"time"
 
 	"golang.org/x/crypto/bcrypt"
@@ -108,12 +109,14 @@ func (model *UserModel) GetByToken(tokenScope, tokenPlaintext string) (*User, er
 
 	var user User
 
+
 	// Create a context with a timeout
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
-	// Prepare the arguments for the query
-	args := []interface{}{tokenHash[:], tokenScope, time.Now()}
+    // Prepare the arguments for the query
+    args := []interface{}{tokenHash[:], tokenScope, time.Now()}
+
 
 	// Execute the query and scan the result into the user variable
 	err := model.DB.QueryRowContext(ctx, query, args...).Scan(
@@ -125,6 +128,7 @@ func (model *UserModel) GetByToken(tokenScope, tokenPlaintext string) (*User, er
 		&user.Activated,
 		&user.Version,
 	)
+    fmt.Println("PENIS!!!!!!")
 	if err != nil {
 		switch {
 		case errors.Is(err, sql.ErrNoRows):
@@ -148,7 +152,7 @@ func (model *UserModel) Update(user *User) error {
 	args := []any{
 		user.Name,
 		user.Email,
-		user.Password.hash,
+		user.Password,
 		user.Activated,
 		user.ID,
 		user.Version,
