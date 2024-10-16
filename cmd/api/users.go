@@ -2,7 +2,6 @@ package main
 
 import (
 	"errors"
-	"fmt"
 	"net/http"
 	"time"
 
@@ -111,7 +110,6 @@ func (app *application) activateUserHandler(w http.ResponseWriter, r *http.Reque
 
 	err = app.models.User.Update(user)
 	if err != nil {
-        fmt.Println("PENIS")
 		app.serverErrorResponse(w, r, err)
 		return
 	}
