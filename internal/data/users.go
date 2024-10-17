@@ -11,7 +11,6 @@ import (
 	"greenlight.nesty.net/internal/validator"
 )
 
-
 var ErrDuplicateEmail = errors.New("duplicate email")
 
 var AnonymousUser = &User{}
@@ -21,11 +20,10 @@ type User struct {
 	CreatedAt time.Time `json: "created_at"`
 	Name      string    `json: "name"`
 	Email     string    `json: "email"`
-	Password  password  `json: "password"`
+	Password  password  `json: "-"`
 	Activated bool      `json: "activated"`
 	Version   int       `json: "-"`
 }
-
 
 type UserModel struct {
 	DB *sql.DB
@@ -36,10 +34,9 @@ type password struct {
 	hash      []byte
 }
 
-func (user *User) IsAnonymous() bool { 
-    return user  == AnonymousUser
+func (user *User) IsAnonymous() bool {
+	return user == AnonymousUser
 }
-
 
 func (model *UserModel) Insert(user *User) error {
 	query := `
