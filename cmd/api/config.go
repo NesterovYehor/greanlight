@@ -49,7 +49,7 @@ func (cnf *config) New() {
 
 	flag.Float64Var(&cnf.limiter.rps, "limiter-rps", 2, "Rate limiter maximum requests per second")
 	flag.IntVar(&cnf.limiter.burst, "limiter-burst", 4, "Rate limiter maximum burst")
-	flag.BoolVar(&cnf.limiter.enable, "limiter-enable", true, "Enable rate limiter")
+	flag.BoolVar(&cnf.limiter.enable, "limiter-enabled", true, "Enable rate limiter")
 
 	flag.StringVar(&cnf.smtp.host, "smtp-host", "sandbox.smtp.mailtrap.io", "SMTP host")
 	flag.IntVar(&cnf.smtp.port, "smtp-port", 25, "SMTP port")

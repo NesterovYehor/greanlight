@@ -3,7 +3,9 @@ package main
 import (
 	"context"
 	"database/sql"
+	"expvar"
 	"os"
+	"runtime"
 	"sync"
 	"time"
 
@@ -35,12 +37,26 @@ func main() {
 
 	defer db.Close()
 
+	expvar.NewString("version").Set(version)
+
+	expvar.Publish("goroutines", expvar.Func(func() any {
+		return runtime.NumGoroutine()
+	}))
+
+	expvar.Publish("database", expvar.Func(func() any {
+		return db.Stats()
+	}))
+
+	expvar.Publish("timestamp", expvar.Func(func() any {
+		return time.Now().Unix()
+	}))
+
 	app := &application{
 		config: cnf,
 		logger: logger,
 		models: data.NewModel(db),
 		mailer: mailer.New(cnf.smtp.port, cnf.smtp.host, cnf.smtp.username, cnf.smtp.password, cnf.smtp.sender), // Corrected line
-        wg: sync.WaitGroup{},
+		wg:     sync.WaitGroup{},
 	}
 
 	logger.PrintInfo("database connection pool established", nil)
