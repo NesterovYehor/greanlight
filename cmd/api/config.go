@@ -33,8 +33,7 @@ type config struct {
 }
 
 var (
-	version string
-
+	version   string
 	buildTime string
 )
 
