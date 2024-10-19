@@ -15,7 +15,6 @@ import (
 	"greenlight.nesty.net/internal/mailer"
 )
 
-const version = "1.0.0"
 
 type application struct {
 	config config
@@ -69,6 +68,9 @@ func main() {
 
 func openDB(cnf config) (*sql.DB, error) {
 	db, err := sql.Open("postgres", cnf.db.dsn)
+	if err != nil {
+		return nil, err
+	}
 
 	db.SetMaxOpenConns(cnf.db.maxOpenConns)
 	db.SetMaxIdleConns(cnf.db.maxIdleConns)
@@ -79,10 +81,6 @@ func openDB(cnf config) (*sql.DB, error) {
 	}
 
 	db.SetConnMaxIdleTime(duration)
-
-	if err != nil {
-		return nil, err
-	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 

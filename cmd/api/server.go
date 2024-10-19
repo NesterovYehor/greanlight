@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
 	"syscall"
 	"time"
 )
@@ -47,6 +48,11 @@ func (app *application) server() error {
 		app.wg.Wait()
 		shutdwonError <- nil
 	}()
+
+	app.logger.PrintInfo("starting server", map[string]string{
+		"addr": strconv.Itoa(app.config.port),
+		"env":  app.config.env,
+	})
 
 	err := srv.ListenAndServe()
 

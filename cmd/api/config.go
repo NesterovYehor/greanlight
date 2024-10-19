@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"log"
 	"os"
 
@@ -31,6 +32,12 @@ type config struct {
 	}
 }
 
+var (
+	version string
+
+	buildTime string
+)
+
 func (cnf *config) New() {
 	err := godotenv.Load()
 	if err != nil {
@@ -57,5 +64,13 @@ func (cnf *config) New() {
 	flag.StringVar(&cnf.smtp.password, "smtp-password", "636272c0c7428b", "SMTP password")
 	flag.StringVar(&cnf.smtp.sender, "smtp-sender", "Test User <test@mailtrap.io>", "SMTP sender")
 
+	displayVersion := flag.Bool("version", false, "Display version and exit")
+
 	flag.Parse()
+
+	if *displayVersion {
+		fmt.Printf("Version:\t%s\n", version)
+		fmt.Printf("Build Time:\t%s\n", buildTime)
+		os.Exit(0)
+	}
 }
