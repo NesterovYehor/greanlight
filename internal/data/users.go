@@ -201,7 +201,6 @@ func (password *password) Maches(plaintextPassword string) (bool, error) {
 			return false, err
 		}
 	}
-
 	return true, nil
 }
 
