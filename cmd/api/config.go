@@ -30,6 +30,9 @@ type config struct {
 		password string
 		sender   string
 	}
+	jwt struct {
+		secret string
+	}
 }
 
 var (
@@ -62,6 +65,8 @@ func (cnf *config) New() {
 	flag.StringVar(&cnf.smtp.username, "smtp-username", "e9e77e413749f7", "SMTP username")
 	flag.StringVar(&cnf.smtp.password, "smtp-password", "636272c0c7428b", "SMTP password")
 	flag.StringVar(&cnf.smtp.sender, "smtp-sender", "Test User <test@mailtrap.io>", "SMTP sender")
+
+	flag.StringVar(&cnf.jwt.secret, "jwt-secret", "", "JWT secret")
 
 	displayVersion := flag.Bool("version", false, "Display version and exit")
 

@@ -11,10 +11,10 @@ import (
 	"time"
 
 	"github.com/felixge/httpsnoop"
+	"github.com/pascaldekloe/jwt"
 	"github.com/tomasen/realip"
 	"golang.org/x/time/rate"
 	"greenlight.nesty.net/internal/data"
-	"greenlight.nesty.net/internal/validator"
 )
 
 func (app *application) recoverPanic(next http.Handler) http.Handler {
@@ -99,14 +99,33 @@ func (app *application) authenticate(next http.Handler) http.Handler {
 
 		token := headerParts[1]
 
-		v := validator.New()
-
-		if data.ValidateTokenPlaintext(v, token); !v.Valid() {
-			app.failedValidationResponse(w, r, v.Errors)
+		claims, err := jwt.HMACCheck([]byte(token), []byte(app.config.jwt.secret))
+		if err != nil {
+			app.invalidAuthenticationTokenResponse(w, r)
 			return
 		}
 
-		user, err := app.models.User.GetByToken(data.ScopeAuthentication, token)
+		if !claims.Valid(time.Now()) {
+			app.invalidAuthenticationTokenResponse(w, r)
+			return
+		}
+
+		if claims.Issuer != "greenlight.nest.net" {
+			app.invalidAuthenticationTokenResponse(w, r)
+			return
+		}
+
+		if claims.AcceptAudience("greenlight.nest.net") {
+			app.invalidAuthenticationTokenResponse(w, r)
+		}
+
+		userId, err := strconv.ParseInt(claims.Subject, 10, 64)
+		if err != nil {
+			app.serverErrorResponse(w, r, err)
+			return
+		}
+
+		user, err := app.models.User.Get(userId)
 		if err != nil {
 			switch {
 			case errors.Is(err, data.ErrRecordNotFound):

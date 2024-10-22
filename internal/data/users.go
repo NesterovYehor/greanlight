@@ -64,6 +64,40 @@ func (model *UserModel) Insert(user *User) error {
 	return nil
 }
 
+func (model *UserModel) Get(id int64) (*User, error) {
+	query := `
+        SELECT id, created_at, name, email, password_hash, activated, version
+        FROM users
+        WHERE id = $1
+    `
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+
+	defer cancel()
+
+	var user User
+
+	err := model.DB.QueryRowContext(ctx, query, id).Scan(
+		&user.ID,
+		&user.CreatedAt,
+		&user.Name,
+		&user.Email,
+		&user.Password.hash,
+		&user.Activated,
+		&user.Version,
+	)
+	if err != nil {
+		switch {
+		case errors.Is(err, sql.ErrNoRows):
+			return nil, ErrRecordNotFound
+		default:
+			return nil, err
+		}
+	}
+
+	return &user, nil
+}
+
 func (model *UserModel) GetByEmail(email string) (*User, error) {
 	query := `
         SELECT id, created_at, name, email, password_hash, activated, version 

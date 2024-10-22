@@ -14,7 +14,7 @@ import (
 const (
 	ScopeActivation     = "activation"
 	ScopeAuthentication = "authentication"
-    ScopePasswordReset = "password-reset"
+	ScopePasswordReset  = "password-reset"
 )
 
 type Token struct {
@@ -88,7 +88,7 @@ func (model *TokenModel) DeleteAllForUser(scope string, userID int64) error {
         DELETE FROM tokens
         WHERE scope = $1 AND user_id = $2`
 
-	args := []interface{}{userID, scope}
+	args := []interface{}{scope, userID}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
